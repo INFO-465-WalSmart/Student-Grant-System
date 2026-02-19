@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login | Student Grant System</title>
+  <style>
+    body{font-family:Arial,sans-serif;background:#0b1220;color:#e6e6e6;margin:0;min-height:100vh;display:grid;place-items:center}
+    .card{width:min(420px,92vw);background:#121a2b;border:1px solid #223055;border-radius:14px;padding:22px}
+    h1{margin:0 0 6px;font-size:1.35rem}
+    p{margin:0 0 18px;color:#b7c0d8;font-size:.95rem}
+    label{display:block;margin:12px 0 6px;font-size:.9rem;color:#cdd6f4}
+    input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #2a3a66;background:#0e1627;color:#e6e6e6}
+    input:focus{outline:2px solid #3b82f6;border-color:transparent}
+    .row{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+    .btn{width:100%;margin-top:16px;padding:11px 12px;border:0;border-radius:10px;background:#3b82f6;color:#fff;font-weight:700;cursor:pointer}
+    a{color:#93c5fd;text-decoration:none}
+    a:hover{text-decoration:underline}
+    .msg{margin-top:12px;padding:10px 12px;border-radius:10px;display:none}
+    .msg.error{background:#2a1220;border:1px solid #7f1d1d;color:#fecaca}
+    .tiny{font-size:.85rem;color:#b7c0d8}
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Sign in</h1>
+    <p>Access your grant applications and status updates.</p>
+
+    <form id="loginForm" novalidate>
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="email" required placeholder="name@example.com" />
+
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="current-password" required minlength="8" placeholder="••••••••" />
+
+      <div class="row">
+        <span class="tiny">
+          <input id="remember" type="checkbox" />
+          <label for="remember" style="display:inline;margin:0 0 0 6px;">Remember me</label>
+        </span>
+        <a href="forgot-password.html">Forgot password?</a>
+      </div>
+
+      <button class="btn" type="submit">Login</button>
+      <div id="msg" class="msg error" role="alert"></div>
+    </form>
+  </main>
+
+  <script>
+    const form = document.getElementById("loginForm");
+    const msg = document.getElementById("msg");
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      msg.style.display = "none";
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      if (!email || !password) {
+        msg.textContent = "Please enter your email and password.";
+        msg.style.display = "block";
+        return;
+      }
+      if (password.length < 8) {
+        msg.textContent = "Password must be at least 8 characters.";
+        msg.style.display = "block";
+        return;
+      }
+
+      // Sprint 1 demo behavior: pretend login worked
+      window.location.href = "dashboard.html";
+    });
+  </script>
+</body>
+</html>
