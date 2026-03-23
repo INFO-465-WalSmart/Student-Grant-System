@@ -1,9 +1,13 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
-import mysql.connector
+import sqlite3
+import os
 
 app = Flask(__name__)
 app.secret_key = "studentgrantsecret"
 app.config["TEMPLATES_AUTO_RELOAD"] = True
+
+DATABASE = "student_grants.db"
+
 
 @app.after_request
 def add_header(response):
@@ -12,17 +16,56 @@ def add_header(response):
     response.headers["Expires"] = "0"
     return response
 
+
 def get_db_connection():
-    return mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="62451",
-        database="student_grants"
-    )
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def init_db():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'user'
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS applications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_name TEXT NOT NULL,
+            email TEXT NOT NULL,
+            grant_type TEXT NOT NULL,
+            amount REAL NOT NULL,
+            status TEXT NOT NULL DEFAULT 'Pending',
+            submitted_by TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cursor.execute("SELECT * FROM users WHERE username = ?", ("admin",))
+    admin_user = cursor.fetchone()
+
+    if not admin_user:
+        cursor.execute(
+            "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+            ("admin", "1234", "admin")
+        )
+
+    conn.commit()
+    conn.close()
+
 
 @app.route("/")
 def home():
     return render_template("index.html")
+
 
 @app.route("/login", methods=["POST"])
 def login():
@@ -30,15 +73,14 @@ def login():
     password = request.form["password"]
 
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT * FROM users WHERE username = %s AND password = %s",
+        "SELECT * FROM users WHERE username = ? AND password = ?",
         (username, password)
     )
     user = cursor.fetchone()
 
-    cursor.close()
     conn.close()
 
     if user:
@@ -54,9 +96,11 @@ def login():
     flash("Invalid username or password.", "error")
     return redirect(url_for("home"))
 
+
 @app.route("/signup")
 def signup():
     return render_template("signup.html")
+
 
 @app.route("/register", methods=["POST"])
 def register():
@@ -70,26 +114,24 @@ def register():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+    cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
     existing_user = cursor.fetchone()
 
     if existing_user:
-        cursor.close()
         conn.close()
         flash("Username already exists. Try a different one.", "error")
         return redirect(url_for("signup"))
 
     cursor.execute(
-        "INSERT INTO users (username, password, role) VALUES (%s, %s, %s)",
+        "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
         (username, password, "user")
     )
     conn.commit()
-
-    cursor.close()
     conn.close()
 
     flash("Account created successfully. You can log in now.", "success")
     return redirect(url_for("home"))
+
 
 @app.route("/dashboard")
 def dashboard():
@@ -102,12 +144,11 @@ def dashboard():
         return redirect(url_for("user_dashboard"))
 
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
     cursor.execute("SELECT * FROM applications ORDER BY created_at DESC")
     applications = cursor.fetchall()
 
-    cursor.close()
     conn.close()
 
     return render_template(
@@ -116,6 +157,7 @@ def dashboard():
         username=session["username"]
     )
 
+
 @app.route("/user-dashboard")
 def user_dashboard():
     if "username" not in session:
@@ -123,17 +165,18 @@ def user_dashboard():
         return redirect(url_for("home"))
 
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
-    query = """
-    SELECT * FROM applications
-    WHERE submitted_by = %s
-    ORDER BY created_at DESC
-    """
-    cursor.execute(query, (session["username"],))
+    cursor.execute(
+        """
+        SELECT * FROM applications
+        WHERE submitted_by = ?
+        ORDER BY created_at DESC
+        """,
+        (session["username"],)
+    )
     applications = cursor.fetchall()
 
-    cursor.close()
     conn.close()
 
     return render_template(
@@ -142,9 +185,11 @@ def user_dashboard():
         applications=applications
     )
 
+
 @app.route("/forgot-password")
 def forgot_password():
     return render_template("forgot-password.html")
+
 
 @app.route("/apply")
 def apply():
@@ -157,6 +202,7 @@ def apply():
         return redirect(url_for("dashboard"))
 
     return render_template("apply.html")
+
 
 @app.route("/submit-application", methods=["POST"])
 def submit_application():
@@ -177,18 +223,19 @@ def submit_application():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    query = """
-    INSERT INTO applications (student_name, email, grant_type, amount, submitted_by)
-    VALUES (%s, %s, %s, %s, %s)
-    """
-    cursor.execute(query, (student_name, email, grant_type, amount, submitted_by))
+    cursor.execute(
+        """
+        INSERT INTO applications (student_name, email, grant_type, amount, submitted_by)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (student_name, email, grant_type, amount, submitted_by)
+    )
     conn.commit()
-
-    cursor.close()
     conn.close()
 
     flash("Application submitted successfully.", "success")
     return redirect(url_for("user_dashboard"))
+
 
 @app.route("/update-status", methods=["POST"])
 def update_status():
@@ -206,15 +253,16 @@ def update_status():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    query = "UPDATE applications SET status = %s WHERE id = %s"
-    cursor.execute(query, (status, application_id))
+    cursor.execute(
+        "UPDATE applications SET status = ? WHERE id = ?",
+        (status, application_id)
+    )
     conn.commit()
-
-    cursor.close()
     conn.close()
 
     flash(f"Application status updated to {status}.", "success")
     return redirect(url_for("dashboard"))
+
 
 @app.route("/logout")
 def logout():
@@ -222,5 +270,8 @@ def logout():
     flash("Logged out successfully.", "success")
     return redirect(url_for("home"))
 
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    init_db()
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
