@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Dashboard | Student Grant System</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0b1220;
+      color: #e6e6e6;
+      margin: 0;
+      min-height: 100vh;
+      padding: 30px;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .card {
+      background: #121a2b;
+      border: 1px solid #223055;
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    h1, h2 {
+      margin-top: 0;
+    }
+    p {
+      color: #b7c0d8;
+    }
+    .btn {
+      display: inline-block;
+      margin-top: 10px;
+      margin-right: 10px;
+      padding: 12px 18px;
+      border-radius: 10px;
+      background: #3b82f6;
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #223055;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      color: #93c5fd;
+    }
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .small-btn {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .pending {
+      background: #f59e0b;
+    }
+    .approved {
+      background: #10b981;
+    }
+    .denied {
+      background: #ef4444;
+    }
+    .empty {
+      color: #b7c0d8;
+      margin-top: 12px;
+    }
+    .status-pill {
+      font-weight: bold;
+      padding: 6px 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+    .status-pending {
+      background: #4b3200;
+      color: #fbbf24;
+    }
+    .status-approved {
+      background: #063d2d;
+      color: #34d399;
+    }
+    .status-denied {
+      background: #4a1010;
+      color: #f87171;
+    }
+    .flash {
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 14px;
+      font-size: 0.95rem;
+    }
+    .flash.success {
+      background: #063d2d;
+      color: #86efac;
+      border: 1px solid #14532d;
+    }
+    .flash.error {
+      background: #4a1010;
+      color: #fca5a5;
+      border: 1px solid #7f1d1d;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="card">
+      <h1>Admin Dashboard</h1>
+      <p>Welcome, {{ username }}. You can review and manage all grant applications here.</p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <a class="btn" href="/logout">Logout</a>
+    </div>
+
+    <div class="card">
+      <h2>Submitted Applications</h2>
+
+      {% if applications %}
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Submitted By</th>
+            <th>Student Name</th>
+            <th>Email</th>
+            <th>Grant Type</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th>Admin Controls</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in applications %}
+          <tr>
+            <td>{{ item.id }}</td>
+            <td>{{ item.submitted_by }}</td>
+            <td>{{ item.student_name }}</td>
+            <td>{{ item.email }}</td>
+            <td>{{ item.grant_type }}</td>
+            <td>${{ item.amount }}</td>
+            <td>
+              {% if item.status == "Pending" %}
+                <span class="status-pill status-pending">{{ item.status }}</span>
+              {% elif item.status == "Approved" %}
+                <span class="status-pill status-approved">{{ item.status }}</span>
+              {% elif item.status == "Denied" %}
+                <span class="status-pill status-denied">{{ item.status }}</span>
+              {% else %}
+                <span class="status-pill">{{ item.status }}</span>
+              {% endif %}
+            </td>
+            <td>{{ item.created_at }}</td>
+            <td>
+              <div class="actions">
+                <form action="/update-status" method="POST">
+                  <input type="hidden" name="application_id" value="{{ item.id }}">
+                  <input type="hidden" name="status" value="Pending">
+                  <button class="small-btn pending" type="submit">Pending</button>
+                </form>
+
+                <form action="/update-status" method="POST">
+                  <input type="hidden" name="application_id" value="{{ item.id }}">
+                  <input type="hidden" name="status" value="Approved">
+                  <button class="small-btn approved" type="submit">Approve</button>
+                </form>
+
+                <form action="/update-status" method="POST">
+                  <input type="hidden" name="application_id" value="{{ item.id }}">
+                  <input type="hidden" name="status" value="Denied">
+                  <button class="small-btn denied" type="submit">Deny</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="empty">No applications submitted yet.</p>
+      {% endif %}
+    </div>
+
+  </div>
+</body>
+</html>
