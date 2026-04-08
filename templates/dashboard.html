@@ -2,210 +2,167 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Admin Dashboard | Student Grant System</title>
+  <title>Admin Dashboard</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       background: #0b1220;
       color: #e6e6e6;
       margin: 0;
-      min-height: 100vh;
-      padding: 30px;
+      padding: 20px;
     }
-    .container {
-      max-width: 1100px;
-      margin: 0 auto;
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      gap: 12px;
+      flex-wrap: wrap;
     }
-    .card {
+    .logout {
+      background: #3b82f6;
+      color: white;
+      padding: 10px 14px;
+      text-decoration: none;
+      border-radius: 8px;
+    }
+    .filters, .card {
       background: #121a2b;
       border: 1px solid #223055;
       border-radius: 14px;
-      padding: 24px;
+      padding: 16px;
       margin-bottom: 20px;
     }
-    h1, h2 {
-      margin-top: 0;
+    .filter-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 12px;
+      align-items: end;
     }
-    p {
-      color: #b7c0d8;
-    }
-    .btn {
-      display: inline-block;
-      margin-top: 10px;
-      margin-right: 10px;
-      padding: 12px 18px;
-      border-radius: 10px;
-      background: #3b82f6;
-      color: white;
-      text-decoration: none;
-      font-weight: bold;
-      border: none;
-      cursor: pointer;
-    }
-    table {
+    .row { margin: 8px 0; }
+    .label { color: #93c5fd; font-weight: bold; }
+    select, textarea, button {
       width: 100%;
-      border-collapse: collapse;
-      margin-top: 15px;
-    }
-    th, td {
-      padding: 12px;
-      border-bottom: 1px solid #223055;
-      text-align: left;
-      vertical-align: top;
-    }
-    th {
-      color: #93c5fd;
-    }
-    .actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .small-btn {
-      padding: 8px 12px;
-      border: none;
+      padding: 10px;
       border-radius: 8px;
+      border: 1px solid #2a3a66;
+      background: #0e1627;
+      color: #e6e6e6;
+      box-sizing: border-box;
+      margin-top: 8px;
+    }
+    textarea { min-height: 80px; resize: vertical; }
+    button {
+      background: #3b82f6;
+      border: none;
       color: white;
+      font-weight: bold;
       cursor: pointer;
-      font-weight: bold;
     }
-    .pending {
-      background: #f59e0b;
-    }
-    .approved {
-      background: #10b981;
-    }
-    .denied {
-      background: #ef4444;
-    }
-    .empty {
-      color: #b7c0d8;
-      margin-top: 12px;
-    }
-    .status-pill {
-      font-weight: bold;
-      padding: 6px 10px;
-      border-radius: 999px;
+    .secondary-btn {
       display: inline-block;
+      text-decoration: none;
+      background: #334155;
+      color: white;
+      padding: 10px 14px;
+      border-radius: 8px;
+      text-align: center;
     }
-    .status-pending {
-      background: #4b3200;
-      color: #fbbf24;
-    }
-    .status-approved {
-      background: #063d2d;
-      color: #34d399;
-    }
-    .status-denied {
-      background: #4a1010;
-      color: #f87171;
-    }
-    .flash {
-      padding: 12px;
-      border-radius: 10px;
-      margin-bottom: 14px;
-      font-size: 0.95rem;
-    }
-    .flash.success {
-      background: #063d2d;
-      color: #86efac;
-      border: 1px solid #14532d;
-    }
-    .flash.error {
-      background: #4a1010;
-      color: #fca5a5;
-      border: 1px solid #7f1d1d;
-    }
+    .flash { padding: 12px; border-radius: 10px; margin-bottom: 14px; }
+    .flash.success { background: #063d2d; color: #86efac; }
+    .flash.error { background: #4a1010; color: #fca5a5; }
   </style>
 </head>
 <body>
-  <div class="container">
-
-    <div class="card">
-      <h1>Admin Dashboard</h1>
-      <p>Welcome, {{ username }}. You can review and manage all grant applications here.</p>
-
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          {% for category, message in messages %}
-            <div class="flash {{ category }}">{{ message }}</div>
-          {% endfor %}
-        {% endif %}
-      {% endwith %}
-
-      <a class="btn" href="/logout">Logout</a>
-    </div>
-
-    <div class="card">
-      <h2>Submitted Applications</h2>
-
-      {% if applications %}
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Submitted By</th>
-            <th>Student Name</th>
-            <th>Email</th>
-            <th>Grant Type</th>
-            <th>Amount</th>
-            <th>Status</th>
-            <th>Date</th>
-            <th>Admin Controls</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for item in applications %}
-          <tr>
-            <td>{{ item.id }}</td>
-            <td>{{ item.submitted_by }}</td>
-            <td>{{ item.student_name }}</td>
-            <td>{{ item.email }}</td>
-            <td>{{ item.grant_type }}</td>
-            <td>${{ item.amount }}</td>
-            <td>
-              {% if item.status == "Pending" %}
-                <span class="status-pill status-pending">{{ item.status }}</span>
-              {% elif item.status == "Approved" %}
-                <span class="status-pill status-approved">{{ item.status }}</span>
-              {% elif item.status == "Denied" %}
-                <span class="status-pill status-denied">{{ item.status }}</span>
-              {% else %}
-                <span class="status-pill">{{ item.status }}</span>
-              {% endif %}
-            </td>
-            <td>{{ item.created_at }}</td>
-            <td>
-              <div class="actions">
-                <form action="/update-status" method="POST">
-                  <input type="hidden" name="application_id" value="{{ item.id }}">
-                  <input type="hidden" name="status" value="Pending">
-                  <button class="small-btn pending" type="submit">Pending</button>
-                </form>
-
-                <form action="/update-status" method="POST">
-                  <input type="hidden" name="application_id" value="{{ item.id }}">
-                  <input type="hidden" name="status" value="Approved">
-                  <button class="small-btn approved" type="submit">Approve</button>
-                </form>
-
-                <form action="/update-status" method="POST">
-                  <input type="hidden" name="application_id" value="{{ item.id }}">
-                  <input type="hidden" name="status" value="Denied">
-                  <button class="small-btn denied" type="submit">Deny</button>
-                </form>
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-      <p class="empty">No applications submitted yet.</p>
-      {% endif %}
-    </div>
-
+  <div class="topbar">
+    <h1>Admin Dashboard</h1>
+    <a href="/logout" class="logout">Logout</a>
   </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <div class="filters">
+    <form method="GET" action="/dashboard">
+      <div class="filter-row">
+        <div>
+          <label for="status_filter">Filter by Status</label>
+          <select id="status_filter" name="status">
+            <option value="">All Statuses</option>
+            <option value="Pending" {% if request.args.get('status') == 'Pending' %}selected{% endif %}>Pending</option>
+            <option value="Approved" {% if request.args.get('status') == 'Approved' %}selected{% endif %}>Approved</option>
+            <option value="Denied" {% if request.args.get('status') == 'Denied' %}selected{% endif %}>Denied</option>
+          </select>
+        </div>
+        <div><button type="submit">Apply Filter</button></div>
+        <div><a href="/dashboard" class="secondary-btn">Clear Filter</a></div>
+      </div>
+    </form>
+  </div>
+
+  {% if applications %}
+    {% for app in applications %}
+      <div class="card">
+        <h3>{{ app.student_name }} - {{ app.grant_name if app.grant_name else 'Unknown Grant' }}</h3>
+        <div class="row"><span class="label">Email:</span> {{ app.email }}</div>
+        <div class="row"><span class="label">School:</span> {{ app.school_name }}</div>
+        <div class="row"><span class="label">Education Level:</span> {{ app.education_level }}</div>
+        <div class="row"><span class="label">Academic Year:</span> {{ app.academic_year }}</div>
+        <div class="row"><span class="label">Major:</span> {{ app.major }}</div>
+        <div class="row"><span class="label">GPA:</span> {{ app.gpa }}</div>
+        <div class="row"><span class="label">Enrollment:</span> {{ app.enrollment_status }}</div>
+        <div class="row"><span class="label">Term:</span> {{ app.semester }}</div>
+        <div class="row"><span class="label">Automated Eligibility:</span> {{ app.eligibility_result }}</div>
+        <div class="row"><span class="label">Eligibility Reason:</span> {{ app.eligibility_reason }}</div>
+        <div class="row"><span class="label">Status:</span> {{ app.status }}</div>
+        <div class="row"><span class="label">Admin Final Decision:</span> {{ app.admin_final_decision }}</div>
+        <div class="row"><span class="label">Recommended Amount:</span> {{ app.grant_award_amount if app.grant_award_amount else 'TBD' }}</div>
+
+        <form method="POST" action="/update-status">
+          <input type="hidden" name="application_id" value="{{ app.id }}">
+
+          <label>Status</label>
+          <select name="status" required>
+            <option value="Pending" {% if app.status == "Pending" %}selected{% endif %}>Pending</option>
+            <option value="Approved" {% if app.status == "Approved" %}selected{% endif %}>Approved</option>
+            <option value="Denied" {% if app.status == "Denied" %}selected{% endif %}>Denied</option>
+          </select>
+
+          <label>Admin Final Decision</label>
+          <select name="admin_final_decision" required>
+            <option value="Pending Review" {% if app.admin_final_decision == "Pending Review" %}selected{% endif %}>Pending Review</option>
+            <option value="Confirmed Eligible" {% if app.admin_final_decision == "Confirmed Eligible" %}selected{% endif %}>Confirmed Eligible</option>
+            <option value="Override - Eligible" {% if app.admin_final_decision == "Override - Eligible" %}selected{% endif %}>Override - Eligible</option>
+            <option value="Override - Not Eligible" {% if app.admin_final_decision == "Override - Not Eligible" %}selected{% endif %}>Override - Not Eligible</option>
+          </select>
+
+          <label>Awarded Amount</label>
+          <select name="awarded_amount">
+            <option value="">No amount assigned</option>
+            <option value="500">500</option>
+            <option value="1000">1000</option>
+            <option value="1200">1200</option>
+            <option value="1500">1500</option>
+            <option value="2000">2000</option>
+            <option value="2500">2500</option>
+            <option value="3000">3000</option>
+            <option value="3500">3500</option>
+          </select>
+
+          <label>Review Notes</label>
+          <textarea name="review_notes">{{ app.review_notes if app.review_notes else '' }}</textarea>
+
+          <button type="submit">Update Application</button>
+        </form>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="card">No applications found for this filter.</div>
+  {% endif %}
 </body>
 </html>
