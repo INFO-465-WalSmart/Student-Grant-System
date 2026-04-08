@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sign Up | Student Grant System</title>
   <style>
     body {
@@ -58,10 +59,8 @@
     a {
       color: #93c5fd;
       text-decoration: none;
-    }
-    .links {
+      display: inline-block;
       margin-top: 14px;
-      text-align: center;
     }
     .flash {
       padding: 12px;
@@ -72,17 +71,19 @@
     .flash.success {
       background: #063d2d;
       color: #86efac;
+      border: 1px solid #14532d;
     }
     .flash.error {
       background: #4a1010;
       color: #fca5a5;
+      border: 1px solid #7f1d1d;
     }
   </style>
 </head>
 <body>
   <main class="card">
-    <h1>Create Account</h1>
-    <p>Register to apply for student grants.</p>
+    <h1>Create account</h1>
+    <p>Sign up for the Student Grant System.</p>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
@@ -94,17 +95,15 @@
 
     <form action="/register" method="POST">
       <label for="username">Username</label>
-      <input id="username" name="username" type="text" required>
+      <input id="username" name="username" type="text" required placeholder="Choose a username">
 
       <label for="password">Password</label>
-      <input id="password" name="password" type="password" required>
+      <input id="password" name="password" type="password" required placeholder="Choose a password">
 
-      <button class="btn" type="submit">Create Account</button>
+      <button class="btn" type="submit">Sign Up</button>
     </form>
 
-    <div class="links">
-      <a href="/">Back to login</a>
-    </div>
+    <a href="/">Back to login</a>
   </main>
 </body>
 </html>
