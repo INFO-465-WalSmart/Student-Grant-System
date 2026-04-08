@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 import mysql.connector
-
+import sqlite3
 app = Flask(__name__)
 app.secret_key = "studentgrantsecret"
 app.config["TEMPLATES_AUTO_RELOAD"] = True
