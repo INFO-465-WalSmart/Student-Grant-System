@@ -1,15 +1,12 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 import sqlite3
+import os
+
 app = Flask(__name__)
 app.secret_key = "studentgrantsecret"
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 
-DB_CONFIG = {
-    "host": "localhost",
-    "user": "root",
-    "password": "62451",
-    "database": "student_grants_db"
-}
+DATABASE = "student_grants.db"
 
 
 @app.after_request
@@ -21,7 +18,137 @@ def add_header(response):
 
 
 def get_db_connection():
-    return mysql.connector.connect(**DB_CONFIG)
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def init_db():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'user'
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS grants (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            grant_name TEXT NOT NULL,
+            award_amount REAL,
+            education_level_required TEXT,
+            minimum_gpa REAL,
+            enrollment_required TEXT,
+            academic_year_required TEXT,
+            need_based INTEGER DEFAULT 0,
+            requires_statement INTEGER DEFAULT 0,
+            priority_group TEXT,
+            status TEXT NOT NULL DEFAULT 'Open'
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS applications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_name TEXT NOT NULL,
+            student_id TEXT,
+            email TEXT NOT NULL,
+            phone TEXT,
+            education_level TEXT,
+            school_name TEXT,
+            academic_year TEXT,
+            major TEXT,
+            gpa REAL,
+            enrollment_status TEXT,
+            semester TEXT,
+            grant_id INTEGER,
+            grant_type TEXT,
+            reason TEXT,
+            fund_use TEXT,
+            other_aid TEXT,
+            special_circumstances TEXT,
+            agreement_confirmed INTEGER DEFAULT 0,
+            enrollment_confirmed INTEGER DEFAULT 0,
+            submitted_by TEXT,
+            eligibility_result TEXT,
+            eligibility_reason TEXT,
+            status TEXT NOT NULL DEFAULT 'Pending',
+            admin_final_decision TEXT DEFAULT 'Pending Review',
+            awarded_amount REAL,
+            review_notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (grant_id) REFERENCES grants(id)
+        )
+    """)
+
+    cursor.execute("SELECT * FROM users WHERE username = ?", ("admin",))
+    admin_user = cursor.fetchone()
+
+    if not admin_user:
+        cursor.execute(
+            "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+            ("admin", "1234", "admin")
+        )
+
+    cursor.execute("SELECT COUNT(*) AS count FROM grants")
+    grant_count = cursor.fetchone()["count"]
+
+    if grant_count == 0:
+        sample_grants = [
+            (
+                "Academic Excellence Grant",
+                2500,
+                "Undergraduate",
+                3.5,
+                "Full-Time",
+                "Junior",
+                0,
+                1,
+                "High-Achieving Students",
+                "Open"
+            ),
+            (
+                "Need-Based Student Support Grant",
+                3000,
+                "Any",
+                2.5,
+                "Full-Time",
+                "Any",
+                1,
+                1,
+                "Students with Financial Need",
+                "Open"
+            ),
+            (
+                "Graduate Achievement Grant",
+                4000,
+                "Graduate",
+                3.2,
+                "Part-Time",
+                "Any",
+                0,
+                1,
+                "Graduate Students",
+                "Open"
+            )
+        ]
+
+        cursor.executemany("""
+            INSERT INTO grants (
+                grant_name, award_amount, education_level_required, minimum_gpa,
+                enrollment_required, academic_year_required, need_based,
+                requires_statement, priority_group, status
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, sample_grants)
+
+    conn.commit()
+    conn.close()
 
 
 def check_eligibility(student_data, grant):
@@ -54,21 +181,21 @@ def check_eligibility(student_data, grant):
         else:
             reasons.append("GPA meets minimum requirement.")
 
-    if grant_enrollment:
+    if grant_enrollment and grant_enrollment != "Any":
         if student_enrollment != grant_enrollment:
             eligible = False
             reasons.append(f"Enrollment status does not match requirement ({grant_enrollment}).")
         else:
             reasons.append("Enrollment status matches requirement.")
 
-    if grant_academic_year:
+    if grant_academic_year and grant_academic_year != "Any":
         if student_academic_year != grant_academic_year:
             eligible = False
             reasons.append(f"Academic year does not match requirement ({grant_academic_year}).")
         else:
             reasons.append("Academic year matches requirement.")
 
-    if grant.get("need_based"):
+    if grant["need_based"]:
         reasons.append("This is a need-based grant and may require additional review.")
         hardship_text = f"{student_reason} {student_special_circumstances}".strip().lower()
         hardship_keywords = [
@@ -88,14 +215,14 @@ def check_eligibility(student_data, grant):
         else:
             reasons.append("Need-based grant selected, but hardship indicators may require manual review.")
 
-    if grant.get("requires_statement"):
+    if grant["requires_statement"]:
         if len(student_reason.strip()) < 20:
             eligible = False
             reasons.append("Application statement is too short for this grant.")
         else:
             reasons.append("Application statement meets minimum detail expectation.")
 
-    if grant.get("priority_group"):
+    if grant["priority_group"]:
         reasons.append(f"Priority consideration for: {grant['priority_group']}.")
 
     if eligible:
@@ -119,13 +246,13 @@ def login():
     password = request.form["password"]
 
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
+
     cursor.execute(
-        "SELECT * FROM users WHERE username = %s AND password = %s",
+        "SELECT * FROM users WHERE username = ? AND password = ?",
         (username, password)
     )
     user = cursor.fetchone()
-    cursor.close()
     conn.close()
 
     if user:
@@ -156,23 +283,21 @@ def register():
         return redirect(url_for("signup"))
 
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+    cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
     existing_user = cursor.fetchone()
 
     if existing_user:
-        cursor.close()
         conn.close()
         flash("Username already exists. Try a different one.", "error")
         return redirect(url_for("signup"))
 
     cursor.execute(
-        "INSERT INTO users (username, password, role) VALUES (%s, %s, %s)",
+        "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
         (username, password, "user")
     )
     conn.commit()
-    cursor.close()
     conn.close()
 
     flash("Account created successfully. You can log in now.", "success")
@@ -192,14 +317,14 @@ def dashboard():
     status_filter = request.args.get("status", "").strip()
 
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
     if status_filter:
         cursor.execute("""
             SELECT a.*, g.grant_name, g.award_amount AS grant_award_amount
             FROM applications a
             LEFT JOIN grants g ON a.grant_id = g.id
-            WHERE a.status = %s
+            WHERE a.status = ?
             ORDER BY a.created_at DESC
         """, (status_filter,))
     else:
@@ -211,7 +336,6 @@ def dashboard():
         """)
 
     applications = cursor.fetchall()
-    cursor.close()
     conn.close()
 
     return render_template(
@@ -228,16 +352,16 @@ def user_dashboard():
         return redirect(url_for("home"))
 
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
+
     cursor.execute("""
         SELECT a.*, g.grant_name, g.award_amount AS grant_award_amount
         FROM applications a
         LEFT JOIN grants g ON a.grant_id = g.id
-        WHERE a.submitted_by = %s
+        WHERE a.submitted_by = ?
         ORDER BY a.created_at DESC
     """, (session["username"],))
     applications = cursor.fetchall()
-    cursor.close()
     conn.close()
 
     return render_template(
@@ -263,10 +387,9 @@ def apply():
         return redirect(url_for("dashboard"))
 
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
     cursor.execute("SELECT * FROM grants WHERE status = 'Open' ORDER BY grant_name ASC")
     grants = cursor.fetchall()
-    cursor.close()
     conn.close()
 
     return render_template("apply.html", grants=grants)
@@ -307,13 +430,12 @@ def submit_application():
     submitted_by = session["username"]
 
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM grants WHERE id = %s", (grant_id,))
+    cursor.execute("SELECT * FROM grants WHERE id = ?", (grant_id,))
     grant = cursor.fetchone()
 
     if not grant:
-        cursor.close()
         conn.close()
         flash("Selected grant was not found.", "error")
         return redirect(url_for("apply"))
@@ -330,11 +452,7 @@ def submit_application():
     eligibility_result, eligibility_reason = check_eligibility(student_data, grant)
     grant_type = grant["grant_name"]
 
-    cursor.close()
-    cursor = conn.cursor()
-
-    cursor.execute(
-        """
+    cursor.execute("""
         INSERT INTO applications (
             student_name,
             student_id,
@@ -361,38 +479,35 @@ def submit_application():
             status,
             admin_final_decision
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """,
-        (
-            student_name,
-            student_id,
-            email,
-            phone,
-            education_level,
-            school_name,
-            academic_year,
-            major,
-            gpa,
-            enrollment_status,
-            semester,
-            grant_id,
-            grant_type,
-            reason,
-            fund_use,
-            other_aid,
-            special_circumstances,
-            agreement_confirmed,
-            enrollment_confirmed,
-            submitted_by,
-            eligibility_result,
-            eligibility_reason,
-            "Pending",
-            "Pending Review"
-        )
-    )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        student_name,
+        student_id,
+        email,
+        phone,
+        education_level,
+        school_name,
+        academic_year,
+        major,
+        gpa,
+        enrollment_status,
+        semester,
+        grant_id,
+        grant_type,
+        reason,
+        fund_use,
+        other_aid,
+        special_circumstances,
+        agreement_confirmed,
+        enrollment_confirmed,
+        submitted_by,
+        eligibility_result,
+        eligibility_reason,
+        "Pending",
+        "Pending Review"
+    ))
 
     conn.commit()
-    cursor.close()
     conn.close()
 
     flash("Application submitted successfully. Automated eligibility screening completed.", "success")
@@ -420,19 +535,17 @@ def update_status():
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        """
+
+    cursor.execute("""
         UPDATE applications
-        SET status = %s,
-            admin_final_decision = %s,
-            awarded_amount = %s,
-            review_notes = %s
-        WHERE id = %s
-        """,
-        (status, admin_final_decision, awarded_amount, review_notes, application_id)
-    )
+        SET status = ?,
+            admin_final_decision = ?,
+            awarded_amount = ?,
+            review_notes = ?
+        WHERE id = ?
+    """, (status, admin_final_decision, awarded_amount, review_notes, application_id))
+
     conn.commit()
-    cursor.close()
     conn.close()
 
     flash("Application updated successfully.", "success")
@@ -446,5 +559,8 @@ def logout():
     return redirect(url_for("home"))
 
 
+init_db()
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
