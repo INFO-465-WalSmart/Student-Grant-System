@@ -2,161 +2,118 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>User Dashboard | Student Grant System</title>
+  <title>Student Dashboard</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       background: #0b1220;
       color: #e6e6e6;
       margin: 0;
-      min-height: 100vh;
-      padding: 30px;
+      padding: 20px;
     }
-    .container {
-      max-width: 1000px;
-      margin: 0 auto;
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      background: #3b82f6;
+      color: white;
+      padding: 10px 14px;
+      text-decoration: none;
+      border-radius: 8px;
+      margin-left: 10px;
     }
     .card {
       background: #121a2b;
       border: 1px solid #223055;
       border-radius: 14px;
-      padding: 24px;
-      margin-bottom: 20px;
+      padding: 18px;
+      margin-bottom: 18px;
     }
-    h1, h2 {
-      margin-top: 0;
+    .row {
+      margin: 8px 0;
     }
-    p {
-      color: #b7c0d8;
-    }
-    .btn {
-      display: inline-block;
-      margin-top: 10px;
-      margin-right: 10px;
-      padding: 12px 18px;
-      border-radius: 10px;
-      background: #3b82f6;
-      color: white;
-      text-decoration: none;
+    .label {
+      color: #93c5fd;
       font-weight: bold;
     }
     .flash {
       padding: 12px;
       border-radius: 10px;
       margin-bottom: 14px;
-      font-size: 0.95rem;
     }
     .flash.success {
       background: #063d2d;
       color: #86efac;
-      border: 1px solid #14532d;
     }
     .flash.error {
       background: #4a1010;
       color: #fca5a5;
-      border: 1px solid #7f1d1d;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 15px;
-    }
-    th, td {
-      padding: 12px;
-      border-bottom: 1px solid #223055;
-      text-align: left;
-      vertical-align: top;
-    }
-    th {
-      color: #93c5fd;
-    }
-    .empty {
-      color: #b7c0d8;
-      margin-top: 12px;
-    }
-    .status-pill {
-      font-weight: bold;
-      padding: 6px 10px;
-      border-radius: 999px;
+    .pill {
       display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: bold;
     }
-    .status-pending {
-      background: #4b3200;
-      color: #fbbf24;
+    .pill.pending {
+      background: #5b3a00;
+      color: #fcd34d;
     }
-    .status-approved {
-      background: #063d2d;
-      color: #34d399;
+    .pill.approved {
+      background: #14532d;
+      color: #86efac;
     }
-    .status-denied {
-      background: #4a1010;
-      color: #f87171;
+    .pill.denied {
+      background: #7f1d1d;
+      color: #fca5a5;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="card">
-      <h1>User Dashboard</h1>
-      <p>Welcome, {{ username }}. You can submit grant applications and track their status here.</p>
-
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          {% for category, message in messages %}
-            <div class="flash {{ category }}">{{ message }}</div>
-          {% endfor %}
-        {% endif %}
-      {% endwith %}
-
-      <a class="btn" href="/apply">Apply for a Grant</a>
+  <div class="topbar">
+    <h1>Student Dashboard</h1>
+    <div>
+      <a class="btn" href="/apply">Apply for Grant</a>
       <a class="btn" href="/logout">Logout</a>
     </div>
-
-    <div class="card">
-      <h2>Your Applications</h2>
-
-      {% if applications %}
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Student Name</th>
-            <th>Email</th>
-            <th>Grant Type</th>
-            <th>Amount</th>
-            <th>Status</th>
-            <th>Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for item in applications %}
-          <tr>
-            <td>{{ item.id }}</td>
-            <td>{{ item.student_name }}</td>
-            <td>{{ item.email }}</td>
-            <td>{{ item.grant_type }}</td>
-            <td>${{ item.amount }}</td>
-            <td>
-              {% if item.status == "Pending" %}
-                <span class="status-pill status-pending">{{ item.status }}</span>
-              {% elif item.status == "Approved" %}
-                <span class="status-pill status-approved">{{ item.status }}</span>
-              {% elif item.status == "Denied" %}
-                <span class="status-pill status-denied">{{ item.status }}</span>
-              {% else %}
-                <span class="status-pill">{{ item.status }}</span>
-              {% endif %}
-            </td>
-            <td>{{ item.created_at }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-      <p class="empty">You have not submitted any applications yet.</p>
-      {% endif %}
-    </div>
   </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  {% for app in applications %}
+    <div class="card">
+      <div class="row"><span class="label">Grant:</span> {{ app.grant_name if app.grant_name else 'Unknown Grant' }}</div>
+
+      <div class="row">
+        <span class="label">Status:</span>
+        {% if app.status == "Approved" %}
+          <span class="pill approved">Approved</span>
+        {% elif app.status == "Denied" %}
+          <span class="pill denied">Denied</span>
+        {% else %}
+          <span class="pill pending">Pending</span>
+        {% endif %}
+      </div>
+
+      <div class="row"><span class="label">Automated Eligibility:</span> {{ app.eligibility_result }}</div>
+      <div class="row"><span class="label">Eligibility Reason:</span> {{ app.eligibility_reason }}</div>
+      <div class="row"><span class="label">Admin Final Decision:</span> {{ app.admin_final_decision }}</div>
+      <div class="row"><span class="label">Awarded Amount:</span> {{ app.awarded_amount if app.awarded_amount else 'Not assigned' }}</div>
+      <div class="row"><span class="label">Review Notes:</span> {{ app.review_notes if app.review_notes else 'No review notes yet' }}</div>
+      <div class="row"><span class="label">Submitted:</span> {{ app.created_at }}</div>
+    </div>
+  {% endfor %}
 </body>
 </html>
