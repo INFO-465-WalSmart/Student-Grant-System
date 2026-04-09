@@ -7,7 +7,7 @@ app.secret_key = "studentgrantsecret"
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-DATABASE = os.path.join(BASE_DIR, "NEW_student_grants.db")
+DATABASE = os.path.join(BASE_DIR, "student_grants.db")
 
 
 @app.after_request
@@ -560,7 +560,7 @@ def logout():
     return redirect(url_for("home"))
 
 
-#init_db()
+init_db()
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
