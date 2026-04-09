@@ -6,7 +6,13 @@ app = Flask(__name__)
 app.secret_key = "studentgrantsecret"
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 
-DATABASE = "student_grants.db"
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+INSTANCE_DIR = os.path.join(BASE_DIR, "instance")
+
+if not os.path.exists(INSTANCE_DIR):
+    os.makedirs(INSTANCE_DIR)
+
+DATABASE = os.path.join(INSTANCE_DIR, "student_grants.db")
 
 
 @app.after_request
@@ -18,8 +24,7 @@ def add_header(response):
 
 
 def get_db_connection():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
+conn = sqlite3.connect(DATABASE, check_same_thread=False)    conn.row_factory = sqlite3.Row
     return conn
 
 
