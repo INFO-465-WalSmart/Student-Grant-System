@@ -7,12 +7,7 @@ app.secret_key = "studentgrantsecret"
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-INSTANCE_DIR = os.path.join(BASE_DIR, "instance")
-
-if not os.path.exists(INSTANCE_DIR):
-    os.makedirs(INSTANCE_DIR)
-
-DATABASE = os.path.join(INSTANCE_DIR, "student_grants.db")
+DATABASE = os.path.join(BASE_DIR, "student_grants.db")
 
 
 @app.after_request
