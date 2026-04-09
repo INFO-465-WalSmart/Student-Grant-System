@@ -7,7 +7,7 @@ app.secret_key = "studentgrantsecret"
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-DATABASE = os.path.join(BASE_DIR, "student_grants.db")
+DATABASE = os.path.join(BASE_DIR, "NEW_student_grants.db")
 
 
 @app.after_request
