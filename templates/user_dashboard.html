@@ -1,72 +1,78 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Student Dashboard</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0b1220;
-      color: #e6e6e6;
-      margin: 0;
-      padding: 20px;
-    }
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-    .btn {
-      background: #3b82f6;
-      color: white;
-      padding: 10px 14px;
-      text-decoration: none;
-      border-radius: 8px;
-      margin-left: 10px;
-    }
-    .card {
-      background: #121a2b;
-      border: 1px solid #223055;
-      border-radius: 14px;
-      padding: 18px;
-      margin-bottom: 18px;
-    }
-    .row { margin: 8px 0; }
-    .label { color: #93c5fd; font-weight: bold; }
-    .flash { padding: 12px; border-radius: 10px; margin-bottom: 14px; }
-    .flash.success { background: #063d2d; color: #86efac; }
-    .flash.error { background: #4a1010; color: #fca5a5; }
-  </style>
-</head>
-<body>
-  <div class="topbar">
-    <h1>Student Dashboard</h1>
-    <div>
-      <a class="btn" href="/apply">Apply for Grant</a>
-      <a class="btn" href="/logout">Logout</a>
-    </div>
-  </div>
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <h1>My Grant Applications</h1>
+    <p class="muted">Your applications are shown in a table. Click any row to see more details.</p>
+    <a class="btn" href="{{ url_for('apply') }}">Start New Application</a>
+</div>
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="flash {{ category }}">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
+<div class="card">
+    <h2>Filters</h2>
+    <form method="get" class="filters">
+        <div>
+            <label>Status</label>
+            <select name="status">
+                <option value="">All statuses</option>
+                {% for status in ['Pending', 'Approved', 'Denied'] %}
+                    <option value="{{ status }}" {% if filters.get('status') == status %}selected{% endif %}>{{ status }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label>Grant Type</label>
+            <select name="grant_type">
+                <option value="">All grant types</option>
+                {% for type in grant_types %}
+                    <option value="{{ type.grant_type }}" {% if filters.get('grant_type') == type.grant_type %}selected{% endif %}>{{ type.grant_type }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div><button type="submit">Apply Filters</button></div>
+        <div><a class="btn secondary" href="{{ url_for('user_dashboard') }}">Clear</a></div>
+    </form>
+</div>
 
-  {% for app in applications %}
-    <div class="card">
-      <div class="row"><span class="label">Grant:</span> {{ app.grant_name if app.grant_name else 'Unknown Grant' }}</div>
-      <div class="row"><span class="label">Status:</span> {{ app.status }}</div>
-      <div class="row"><span class="label">Automated Eligibility:</span> {{ app.eligibility_result }}</div>
-      <div class="row"><span class="label">Eligibility Reason:</span> {{ app.eligibility_reason }}</div>
-      <div class="row"><span class="label">Admin Final Decision:</span> {{ app.admin_final_decision }}</div>
-      <div class="row"><span class="label">Awarded Amount:</span> {{ app.awarded_amount if app.awarded_amount else 'Not assigned' }}</div>
-      <div class="row"><span class="label">Review Notes:</span> {{ app.review_notes if app.review_notes else 'No review notes yet' }}</div>
-      <div class="row"><span class="label">Submitted:</span> {{ app.created_at }}</div>
+<div class="card">
+    <h2>Application Portal</h2>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Grant</th>
+                    <th>Type</th>
+                    <th>Submitted</th>
+                    <th>Status</th>
+                    <th>Eligibility</th>
+                    <th>Awarded Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for app in applications %}
+                    <tr class="clickable" onclick="toggleDetails('details-{{ app.id }}')">
+                        <td>{{ app.grant_name or app.grant_type }}</td>
+                        <td>{{ app.official_grant_type or app.grant_type }}</td>
+                        <td>{{ app.created_at }}</td>
+                        <td><span class="badge {{ app.status }}">{{ app.status }}</span></td>
+                        <td>{{ app.eligibility_result or 'Pending Review' }}</td>
+                        <td>{% if app.awarded_amount %}${{ '%.2f'|format(app.awarded_amount) }}{% else %}Not awarded yet{% endif %}</td>
+                    </tr>
+                    <tr id="details-{{ app.id }}" class="details-row">
+                        <td colspan="6">
+                            <div class="details-box">
+                                <h3>Application Details</h3>
+                                <p><strong>Grant Description:</strong> {{ app.description or 'No description available.' }}</p>
+                                <p><strong>Automated Eligibility Reason:</strong> {{ app.eligibility_reason or 'Not generated yet.' }}</p>
+                                <p><strong>Admin Decision:</strong> {{ app.admin_final_decision or 'Pending Review' }}</p>
+                                <p><strong>Review Notes:</strong> {{ app.review_notes or 'No notes yet.' }}</p>
+                                <p><strong>Next Step:</strong> Check this portal for updates. If approved or denied, the decision will appear here.</p>
+                            </div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="6">No applications found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
-  {% endfor %}
-</body>
-</html>
+</div>
+{% endblock %}

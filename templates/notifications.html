@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <h1>Notification Center</h1>
+    <p class="muted">This tracks notification records generated when admin decisions are updated. Actual email sending can be added later.</p>
+</div>
+
+<div class="card">
+    <h2>Generated Notifications</h2>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Email</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Related Grant</th>
+                    <th>Generated At</th>
+                    <th>Message</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for note in notifications %}
+                    <tr>
+                        <td>{{ note.student_name }}</td>
+                        <td>{{ note.student_email }}</td>
+                        <td>{{ note.notification_type }}</td>
+                        <td>{{ note.status }}</td>
+                        <td>{{ note.grant_type }}</td>
+                        <td>{{ note.sent_at }}</td>
+                        <td>{{ note.message }}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="7">No notification records yet. Update an application to Approved or Denied to generate one.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

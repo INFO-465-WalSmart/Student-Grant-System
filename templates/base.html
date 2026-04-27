@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Student Grant System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <nav class="nav">
+        <strong>Student Grant System</strong>
+        <div class="nav-links">
+            {% if session.get('username') %}
+                {% if session.get('role') == 'admin' %}
+                    <a href="{{ url_for('dashboard') }}">Admin Dashboard</a>
+                    <a href="{{ url_for('notifications') }}">Notification Center</a>
+                {% else %}
+                    <a href="{{ url_for('user_dashboard') }}">My Applications</a>
+                    <a href="{{ url_for('apply') }}">Apply</a>
+                {% endif %}
+                <a href="{{ url_for('logout') }}">Logout</a>
+            {% else %}
+                <a href="{{ url_for('home') }}">Login</a>
+                <a href="{{ url_for('signup') }}">Sign Up</a>
+            {% endif %}
+        </div>
+    </nav>
+    <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
+    <script>
+        function toggleDetails(id) {
+            const row = document.getElementById(id);
+            if (!row) return;
+            row.style.display = row.style.display === 'table-row' ? 'none' : 'table-row';
+        }
+    </script>
+</body>
+</html>

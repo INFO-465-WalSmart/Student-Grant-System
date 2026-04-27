@@ -1,168 +1,122 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Admin Dashboard</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0b1220;
-      color: #e6e6e6;
-      margin: 0;
-      padding: 20px;
-    }
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .logout {
-      background: #3b82f6;
-      color: white;
-      padding: 10px 14px;
-      text-decoration: none;
-      border-radius: 8px;
-    }
-    .filters, .card {
-      background: #121a2b;
-      border: 1px solid #223055;
-      border-radius: 14px;
-      padding: 16px;
-      margin-bottom: 20px;
-    }
-    .filter-row {
-      display: grid;
-      grid-template-columns: 1fr auto auto;
-      gap: 12px;
-      align-items: end;
-    }
-    .row { margin: 8px 0; }
-    .label { color: #93c5fd; font-weight: bold; }
-    select, textarea, button {
-      width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #2a3a66;
-      background: #0e1627;
-      color: #e6e6e6;
-      box-sizing: border-box;
-      margin-top: 8px;
-    }
-    textarea { min-height: 80px; resize: vertical; }
-    button {
-      background: #3b82f6;
-      border: none;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .secondary-btn {
-      display: inline-block;
-      text-decoration: none;
-      background: #334155;
-      color: white;
-      padding: 10px 14px;
-      border-radius: 8px;
-      text-align: center;
-    }
-    .flash { padding: 12px; border-radius: 10px; margin-bottom: 14px; }
-    .flash.success { background: #063d2d; color: #86efac; }
-    .flash.error { background: #4a1010; color: #fca5a5; }
-  </style>
-</head>
-<body>
-  <div class="topbar">
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
     <h1>Admin Dashboard</h1>
-    <a href="/logout" class="logout">Logout</a>
-  </div>
+    <p class="muted">Review grant application volume, filter requests, and update decisions.</p>
+    <a class="btn" href="{{ url_for('seed_demo_data_route') }}">Generate Demo Data</a>
+    <a class="btn secondary" href="{{ url_for('notifications') }}">Open Notification Center</a>
+</div>
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="flash {{ category }}">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
+<div class="grid">
+    <div class="card stat"><div class="number">{{ stats.today }}</div><strong>Applications Today</strong></div>
+    <div class="card stat"><div class="number">{{ stats.pending }}</div><strong>Pending Requests</strong></div>
+    <div class="card stat"><div class="number">{{ stats.approved }}</div><strong>Approved</strong></div>
+    <div class="card stat"><div class="number">{{ stats.denied }}</div><strong>Denied</strong></div>
+</div>
 
-  <div class="filters">
-    <form method="GET" action="/dashboard">
-      <div class="filter-row">
+<div class="card">
+    <h2>Filters</h2>
+    <form method="get" class="filters">
         <div>
-          <label for="status_filter">Filter by Status</label>
-          <select id="status_filter" name="status">
-            <option value="">All Statuses</option>
-            <option value="Pending" {% if request.args.get('status') == 'Pending' %}selected{% endif %}>Pending</option>
-            <option value="Approved" {% if request.args.get('status') == 'Approved' %}selected{% endif %}>Approved</option>
-            <option value="Denied" {% if request.args.get('status') == 'Denied' %}selected{% endif %}>Denied</option>
-          </select>
+            <label>Status</label>
+            <select name="status">
+                <option value="">All statuses</option>
+                {% for status in ['Pending', 'Approved', 'Denied'] %}
+                    <option value="{{ status }}" {% if filters.get('status') == status %}selected{% endif %}>{{ status }}</option>
+                {% endfor %}
+            </select>
         </div>
-        <div><button type="submit">Apply Filter</button></div>
-        <div><a href="/dashboard" class="secondary-btn">Clear Filter</a></div>
-      </div>
+        <div>
+            <label>Grant Type</label>
+            <select name="grant_type">
+                <option value="">All grant types</option>
+                {% for type in grant_types %}
+                    <option value="{{ type.grant_type }}" {% if filters.get('grant_type') == type.grant_type %}selected{% endif %}>{{ type.grant_type }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label>Start Date</label>
+            <input type="date" name="start_date" value="{{ filters.get('start_date', '') }}">
+        </div>
+        <div>
+            <label>End Date</label>
+            <input type="date" name="end_date" value="{{ filters.get('end_date', '') }}">
+        </div>
+        <div>
+            <label>New Requests</label>
+            <select name="new_only">
+                <option value="">All</option>
+                <option value="1" {% if filters.get('new_only') %}selected{% endif %}>Pending only</option>
+            </select>
+        </div>
+        <div><button type="submit">Apply Filters</button></div>
+        <div><a class="btn secondary" href="{{ url_for('dashboard') }}">Clear</a></div>
     </form>
-  </div>
+</div>
 
-  {% if applications %}
-    {% for app in applications %}
-      <div class="card">
-        <h3>{{ app.student_name }} - {{ app.grant_name if app.grant_name else 'Unknown Grant' }}</h3>
-        <div class="row"><span class="label">Email:</span> {{ app.email }}</div>
-        <div class="row"><span class="label">School:</span> {{ app.school_name }}</div>
-        <div class="row"><span class="label">Education Level:</span> {{ app.education_level }}</div>
-        <div class="row"><span class="label">Academic Year:</span> {{ app.academic_year }}</div>
-        <div class="row"><span class="label">Major:</span> {{ app.major }}</div>
-        <div class="row"><span class="label">GPA:</span> {{ app.gpa }}</div>
-        <div class="row"><span class="label">Enrollment:</span> {{ app.enrollment_status }}</div>
-        <div class="row"><span class="label">Term:</span> {{ app.semester }}</div>
-        <div class="row"><span class="label">Automated Eligibility:</span> {{ app.eligibility_result }}</div>
-        <div class="row"><span class="label">Eligibility Reason:</span> {{ app.eligibility_reason }}</div>
-        <div class="row"><span class="label">Status:</span> {{ app.status }}</div>
-        <div class="row"><span class="label">Admin Final Decision:</span> {{ app.admin_final_decision }}</div>
-        <div class="row"><span class="label">Recommended Amount:</span> {{ app.grant_award_amount if app.grant_award_amount else 'TBD' }}</div>
-
-        <form method="POST" action="/update-status">
-          <input type="hidden" name="application_id" value="{{ app.id }}">
-
-          <label>Status</label>
-          <select name="status" required>
-            <option value="Pending" {% if app.status == "Pending" %}selected{% endif %}>Pending</option>
-            <option value="Approved" {% if app.status == "Approved" %}selected{% endif %}>Approved</option>
-            <option value="Denied" {% if app.status == "Denied" %}selected{% endif %}>Denied</option>
-          </select>
-
-          <label>Admin Final Decision</label>
-          <select name="admin_final_decision" required>
-            <option value="Pending Review" {% if app.admin_final_decision == "Pending Review" %}selected{% endif %}>Pending Review</option>
-            <option value="Confirmed Eligible" {% if app.admin_final_decision == "Confirmed Eligible" %}selected{% endif %}>Confirmed Eligible</option>
-            <option value="Override - Eligible" {% if app.admin_final_decision == "Override - Eligible" %}selected{% endif %}>Override - Eligible</option>
-            <option value="Override - Not Eligible" {% if app.admin_final_decision == "Override - Not Eligible" %}selected{% endif %}>Override - Not Eligible</option>
-          </select>
-
-          <label>Awarded Amount</label>
-          <select name="awarded_amount">
-            <option value="">No amount assigned</option>
-            <option value="500">500</option>
-            <option value="1000">1000</option>
-            <option value="1200">1200</option>
-            <option value="1500">1500</option>
-            <option value="2000">2000</option>
-            <option value="2500">2500</option>
-            <option value="3000">3000</option>
-            <option value="3500">3500</option>
-          </select>
-
-          <label>Review Notes</label>
-          <textarea name="review_notes">{{ app.review_notes if app.review_notes else '' }}</textarea>
-
-          <button type="submit">Update Application</button>
-        </form>
-      </div>
-    {% endfor %}
-  {% else %}
-    <div class="card">No applications found for this filter.</div>
-  {% endif %}
-</body>
-</html>
+<div class="card">
+    <h2>Applications Table</h2>
+    <div class="table-wrap table-scroll">
+        <table>
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Grant</th>
+                    <th>Type</th>
+                    <th>Submitted</th>
+                    <th>Status</th>
+                    <th>Eligibility</th>
+                    <th>Decision / Update</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for app in applications %}
+                    <tr class="clickable" onclick="toggleDetails('admin-details-{{ app.id }}')">
+                        <td>{{ app.student_name }}<br><span class="muted">{{ app.email }}</span></td>
+                        <td>{{ app.grant_name or app.grant_type }}</td>
+                        <td>{{ app.official_grant_type or app.grant_type }}</td>
+                        <td>{{ app.created_at }}</td>
+                        <td><span class="badge {{ app.status }}">{{ app.status }}</span></td>
+                        <td>{{ app.eligibility_result or 'Pending' }}</td>
+                        <td onclick="event.stopPropagation();">
+                            <form method="post" action="{{ url_for('update_status') }}">
+                                <input type="hidden" name="application_id" value="{{ app.id }}">
+                                <label>Status</label>
+                                <select name="status">
+                                    {% for status in ['Pending', 'Approved', 'Denied'] %}
+                                        <option value="{{ status }}" {% if app.status == status %}selected{% endif %}>{{ status }}</option>
+                                    {% endfor %}
+                                </select>
+                                <label>Final Decision</label>
+                                <input name="admin_final_decision" value="{{ app.admin_final_decision or 'Pending Review' }}">
+                                <label>Awarded Amount</label>
+                                <input name="awarded_amount" value="{{ app.awarded_amount or '' }}">
+                                <label>Review Notes</label>
+                                <textarea name="review_notes">{{ app.review_notes or '' }}</textarea>
+                                <button type="submit">Update</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr id="admin-details-{{ app.id }}" class="details-row">
+                        <td colspan="7">
+                            <div class="details-box">
+                                <h3>Full Application Details</h3>
+                                <p><strong>Student ID:</strong> {{ app.student_id }}</p>
+                                <p><strong>School:</strong> {{ app.school_name }} | <strong>Major:</strong> {{ app.major }} | <strong>GPA:</strong> {{ app.gpa }}</p>
+                                <p><strong>Enrollment:</strong> {{ app.enrollment_status }} | <strong>Academic Year:</strong> {{ app.academic_year }} | <strong>Semester:</strong> {{ app.semester }}</p>
+                                <p><strong>Reason:</strong> {{ app.reason }}</p>
+                                <p><strong>Fund Use:</strong> {{ app.fund_use }}</p>
+                                <p><strong>Special Circumstances:</strong> {{ app.special_circumstances }}</p>
+                                <p><strong>Eligibility Reason:</strong> {{ app.eligibility_reason }}</p>
+                            </div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="7">No applications match the current filters.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

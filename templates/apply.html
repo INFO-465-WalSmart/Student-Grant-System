@@ -1,219 +1,48 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Apply for Grant</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0b1220;
-      color: #e6e6e6;
-      margin: 0;
-      min-height: 100vh;
-      padding: 24px;
-    }
-    .card {
-      max-width: 900px;
-      margin: auto;
-      background: #121a2b;
-      border: 1px solid #223055;
-      border-radius: 14px;
-      padding: 22px;
-    }
-    label {
-      display: block;
-      margin: 12px 0 6px;
-    }
-    input, select, textarea {
-      width: 100%;
-      padding: 10px 12px;
-      border-radius: 10px;
-      border: 1px solid #2a3a66;
-      background: #0e1627;
-      color: #e6e6e6;
-      box-sizing: border-box;
-    }
-    textarea {
-      min-height: 100px;
-      resize: vertical;
-    }
-    .row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-    .btn {
-      width: 100%;
-      margin-top: 18px;
-      padding: 12px;
-      border: 0;
-      border-radius: 10px;
-      background: #3b82f6;
-      color: white;
-      font-weight: 700;
-      cursor: pointer;
-    }
-    .flash {
-      padding: 12px;
-      border-radius: 10px;
-      margin-bottom: 14px;
-    }
-    .flash.success { background: #063d2d; color: #86efac; }
-    .flash.error { background: #4a1010; color: #fca5a5; }
-    .checkbox-group { margin-top: 16px; }
-    .checkbox-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 12px;
-      cursor: pointer;
-    }
-    .checkbox-item input { width: auto !important; }
-  </style>
-</head>
-<body>
-  <main class="card">
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
     <h1>Apply for a Grant</h1>
+    <p class="muted">Choose a grant and complete the required application details.</p>
+</div>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="flash {{ category }}">{{ message }}</div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+<div class="card">
+    <form method="post" action="{{ url_for('submit_application') }}">
+        <h2>Grant Selection</h2>
+        <label>Grant</label>
+        <select name="grant_id" required>
+            <option value="">Select a grant</option>
+            {% for grant in grants %}
+                <option value="{{ grant.id }}">{{ grant.grant_name }} - {{ grant.grant_type }} (${{ grant.award_amount }})</option>
+            {% endfor %}
+        </select>
 
-    <form method="POST" action="/submit-application">
-      <label for="grant_id">Select Grant</label>
-      <select id="grant_id" name="grant_id" required>
-        <option value="">Choose a grant</option>
-        {% for grant in grants %}
-          <option value="{{ grant.id }}">{{ grant.grant_name }}</option>
-        {% endfor %}
-      </select>
-
-      <div class="row">
-        <div>
-          <label for="student_name">Full Name</label>
-          <input id="student_name" name="student_name" required>
+        <h2>Student Information</h2>
+        <div class="two-col">
+            <div><label>Student Name</label><input name="student_name" required></div>
+            <div><label>Student ID</label><input name="student_id" required></div>
+            <div><label>Email</label><input name="email" type="email" required></div>
+            <div><label>Phone</label><input name="phone" required></div>
+            <div><label>Education Level</label><select name="education_level"><option>Undergraduate</option><option>Graduate</option><option>High School</option></select></div>
+            <div><label>School Name</label><input name="school_name" required></div>
+            <div><label>Academic Year</label><select name="academic_year"><option>Freshman</option><option>Sophomore</option><option>Junior</option><option>Senior</option><option>Any</option></select></div>
+            <div><label>Major</label><input name="major" required></div>
+            <div><label>GPA</label><input name="gpa" type="number" min="0" max="4" step="0.01" required></div>
+            <div><label>Enrollment Status</label><select name="enrollment_status"><option>Full-time</option><option>Part-time</option><option>Any</option></select></div>
+            <div><label>Semester</label><input name="semester" placeholder="Fall 2026" required></div>
         </div>
-        <div>
-          <label for="student_id">Student ID / School ID</label>
-          <input id="student_id" name="student_id" required>
-        </div>
-      </div>
 
-      <div class="row">
-        <div>
-          <label for="email">Email</label>
-          <input id="email" name="email" type="email" required>
-        </div>
-        <div>
-          <label for="phone">Phone</label>
-          <input id="phone" name="phone" required>
-        </div>
-      </div>
-
-      <div class="row">
-        <div>
-          <label for="education_level">Education Level</label>
-          <select id="education_level" name="education_level" required>
-            <option value="">Select level</option>
-            <option value="High School">High School</option>
-            <option value="Undergraduate">Undergraduate</option>
-            <option value="Graduate">Graduate</option>
-          </select>
-        </div>
-        <div>
-          <label for="school_name">School Name</label>
-          <input id="school_name" name="school_name" required>
-        </div>
-      </div>
-
-      <div class="row">
-        <div>
-          <label for="academic_year">Academic Year / Grade</label>
-          <select id="academic_year" name="academic_year" required>
-            <option value="">Select academic year / grade</option>
-            <option value="9th Grade">9th Grade</option>
-            <option value="10th Grade">10th Grade</option>
-            <option value="11th Grade">11th Grade</option>
-            <option value="12th Grade">12th Grade</option>
-            <option value="Freshman">Freshman</option>
-            <option value="Sophomore">Sophomore</option>
-            <option value="Junior">Junior</option>
-            <option value="Senior">Senior</option>
-            <option value="Graduate Year 1">Graduate Year 1</option>
-            <option value="Graduate Year 2">Graduate Year 2</option>
-          </select>
-        </div>
-        <div>
-          <label for="major">Major / Intended Program</label>
-          <select id="major" name="major" required>
-            <option value="">Select major / program area</option>
-            <option value="STEM">STEM</option>
-            <option value="Business">Business</option>
-            <option value="Health Sciences">Health Sciences</option>
-            <option value="Engineering">Engineering</option>
-            <option value="Computer Science">Computer Science</option>
-            <option value="Education">Education</option>
-            <option value="Arts">Arts</option>
-            <option value="Humanities">Humanities</option>
-            <option value="Social Sciences">Social Sciences</option>
-            <option value="Undecided">Undecided</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="row">
-        <div>
-          <label for="gpa">GPA</label>
-          <input id="gpa" name="gpa" type="number" step="0.01" min="0" max="4.00" required>
-        </div>
-        <div>
-          <label for="enrollment_status">Enrollment Status</label>
-          <select id="enrollment_status" name="enrollment_status" required>
-            <option value="">Select status</option>
-            <option value="Full-Time">Full-Time</option>
-            <option value="Part-Time">Part-Time</option>
-          </select>
-        </div>
-      </div>
-
-      <label for="semester">Academic Term</label>
-      <select id="semester" name="semester" required>
-        <option value="">Select term</option>
-        <option value="Spring 2026">Spring 2026</option>
-        <option value="Summer 2026">Summer 2026</option>
-        <option value="Fall 2026">Fall 2026</option>
-        <option value="Spring 2027">Spring 2027</option>
-      </select>
-
-      <label for="reason">Reason for Applying</label>
-      <textarea id="reason" name="reason" required></textarea>
-
-      <label for="fund_use">How This Grant Would Support You</label>
-      <textarea id="fund_use" name="fund_use" required></textarea>
-
-      <label for="other_aid">Other Financial Aid Received</label>
-      <textarea id="other_aid" name="other_aid" required></textarea>
-
-      <label for="special_circumstances">Special Circumstances</label>
-      <textarea id="special_circumstances" name="special_circumstances" required></textarea>
-
-      <div class="checkbox-group">
-        <label class="checkbox-item">
-          <input type="checkbox" name="agreement_confirmed" required>
-          I confirm the information provided is accurate.
-        </label>
-        <label class="checkbox-item">
-          <input type="checkbox" name="enrollment_confirmed" required>
-          I confirm I am enrolled or intend to be enrolled during the term listed above.
-        </label>
-      </div>
-
-      <button class="btn" type="submit">Submit Application</button>
+        <h2>Application Details</h2>
+        <label>Reason for Applying</label>
+        <textarea name="reason" required></textarea>
+        <label>How will the funds be used?</label>
+        <textarea name="fund_use" required></textarea>
+        <label>Other Aid</label>
+        <textarea name="other_aid"></textarea>
+        <label>Special Circumstances</label>
+        <textarea name="special_circumstances"></textarea>
+        <p><label><input type="checkbox" name="agreement_confirmed" required style="width:auto;"> I confirm this information is accurate.</label></p>
+        <p><label><input type="checkbox" name="enrollment_confirmed" required style="width:auto;"> I confirm my enrollment status.</label></p>
+        <button type="submit">Submit Application</button>
     </form>
-  </main>
-</body>
-</html>
+</div>
+{% endblock %}
